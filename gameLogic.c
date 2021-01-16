@@ -198,12 +198,12 @@ void gameLogicOnScoreChanged(GameLogic *game, void (*handler)(int mine,
 }
 
 /// zwraca czy obecnie jest nasza tura
-bool gameLogicIsMyTour(GameLogic *game){
+bool gameLogicIsMyTurn(GameLogic *game){
     return game->isMineMove;
 }
 
 /// zwraca czy obecnie jest nasza tura i już zrobiliśmy ruch
-bool gameLogicIsMoveMadeInThisTour(GameLogic *game){
+bool gameLogicIsMoveMadeInThisTurn(GameLogic *game){
     return game->didMakeMove;
 }
 

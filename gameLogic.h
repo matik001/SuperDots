@@ -83,8 +83,8 @@ void gameLogicAddBase(GameLogic *game, Vector *path);
 bool gameLogicIsMoveLegal(GameLogic *game, PointInt p);
 void gameLogicMakeMove(GameLogic *game, PointInt p);
 void gameLogicEndTurn(GameLogic *game);
-bool gameLogicIsMyTour(GameLogic *game);
-bool gameLogicIsMoveMadeInThisTour(GameLogic *game);
+bool gameLogicIsMyTurn(GameLogic *game);
+bool gameLogicIsMoveMadeInThisTurn(GameLogic *game);
 void gameLogicOnScoreChanged(GameLogic *game, void (*handler)(int mine, int his, void* data), void *data);
 
 #endif

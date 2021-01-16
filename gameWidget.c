@@ -164,7 +164,7 @@ void gameOnEndOfGame(Game *game, void (*handler)(int mine,
 
 /// zwraca czy jest nasza tura
 bool gameIsMyTurn(Game *game){
-    return gameLogicIsMyTour(game->gameLogic);
+    return gameLogicIsMyTurn(game->gameLogic);
 }
 
 static void scoreChangedHandler(int mine, int his, void* data){

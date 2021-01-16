@@ -169,7 +169,7 @@ static void init(GameWindow *obj, bool isA, PipesPtr pipePtr, GameLogic *gameLog
     obj->isA = isA;
     obj->pipePtr = pipePtr;
     obj->areWeKeepingTurn = gameLogic==NULL ? false
-        : (gameLogicIsMyTour(gameLogic) && gameLogicIsMoveMadeInThisTour(gameLogic));
+        : (gameLogicIsMyTurn(gameLogic) && gameLogicIsMoveMadeInThisTurn(gameLogic));
 
     obj->window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
     gtk_window_set_title(GTK_WINDOW(obj->window), "Gra w kropki by Mateusz Kisiel");
