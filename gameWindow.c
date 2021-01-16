@@ -7,7 +7,7 @@
 #include "communication.h"
 
 static void init(GameWindow *obj, bool isA, PipesPtr pipePtr, GameLogic *gameLogic);
-static void resetKeepTurnBtn(GameWindow *gameWindow);
+static void updateKeepTurnBtn(GameWindow *gameWindow);
 
 GameWindow* gameWindowCreate(bool isA, PipesPtr pipePtr, GameLogic *gameLogic){
     GameWindow *obj = (GameWindow*)malloc(sizeof(GameWindow));
@@ -17,7 +17,7 @@ GameWindow* gameWindowCreate(bool isA, PipesPtr pipePtr, GameLogic *gameLogic){
 
 void gameWindowShow(GameWindow *gameWindow){
     gtk_widget_show_all(GTK_WIDGET(gameWindow->window));
-    resetKeepTurnBtn(gameWindow);
+    updateKeepTurnBtn(gameWindow);
     gtk_main();
 }
 
@@ -48,7 +48,7 @@ static void endOfGameHandler(int mine, int his, void*data){
 
     gameReset(state->game, state->isA);
     state->areWeKeepingTurn = false;
-    resetKeepTurnBtn(state);
+    updateKeepTurnBtn(state);
 }
 
 /// kliknieto przyisk poddania sie
@@ -69,7 +69,7 @@ static void changeTurn(GameWindow *state){
         gameChangeTurn(state->game); 
     }
 
-    resetKeepTurnBtn(state);
+    updateKeepTurnBtn(state);
 }
 
 /// jezeli przelaczono przycisk trzymania ruchu
@@ -80,6 +80,9 @@ static void keepTurnToggledHandler (GtkButton *btn, gpointer data){
 
     if(!state->areWeKeepingTurn){
         changeTurn(state);
+    }
+    else{
+        updateKeepTurnBtn(state);
     }
 }
 
@@ -202,8 +205,10 @@ static void init(GameWindow *obj, bool isA, PipesPtr pipePtr, GameLogic *gameLog
     gtk_grid_set_column_homogeneous (GTK_GRID(obj->grid), true);
 
     obj->labelScore = gtk_label_new (NULL);
-    setScoreText(obj->labelScore, 0, 0, obj->isA);
-
+    if(gameLogic == NULL)
+        setScoreText(obj->labelScore, 0, 0, obj->isA);
+    else 
+        setScoreText(obj->labelScore, gameLogic->pointsA, gameLogic->pointsB, obj->isA);
 
     obj->surrenderBtn = gtk_button_new_with_label("Podaj się");
     g_signal_connect(obj->surrenderBtn, "clicked", G_CALLBACK(surrenderButtonClicked), obj);
@@ -242,7 +247,7 @@ static void init(GameWindow *obj, bool isA, PipesPtr pipePtr, GameLogic *gameLog
 
 
 /// Updatuje stan toggle buttona
-static void resetKeepTurnBtn(GameWindow *gameWindow){
+static void updateKeepTurnBtn(GameWindow *gameWindow){
     if(!gameIsMyTurn(gameWindow->game))
         gtk_widget_hide(gameWindow->keepTurnBtn);
     else
