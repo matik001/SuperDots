@@ -50,9 +50,9 @@ void serializeVectorPointInt(Serializer *serializer, Vector *points);
 
 Vector *deserializeVectorPointInt(Serializer *serializer);
 
-void serializeGameLogic(Serializer *serializer, GameLogic *state, bool areWePlayerA);
+void serializeGameLogic(Serializer *serializer, GameLogic *state);
 
-GameLogic *deserializeGameLogic(Serializer *serializer, bool areWePlayerA);
+GameLogic *deserializeGameLogic(Serializer *serializer);
 
 void serializerToFile(const char*filename, Serializer *serializer);
 

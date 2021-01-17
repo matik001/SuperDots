@@ -47,7 +47,7 @@ static void loadGameButtonClicked(GtkButton *btn, gpointer data){
     if(filename == NULL)
         return;
     Serializer *serializer = serializerCreateFromFile(filename);
-    GameLogic *gameState = deserializeGameLogic(serializer, state->isA);
+    GameLogic *gameState = deserializeGameLogic(serializer);
     serializerDestroy(serializer);
     state->gameState = gameState;
     gtk_main_quit();
@@ -58,7 +58,7 @@ static void loadGameButtonClicked(GtkButton *btn, gpointer data){
 /// odbiera pakiety i je obsluguje
 static gboolean handlePackets(gpointer data){
     MenuWindow *state = (MenuWindow*)data;
-    Vector* packets = communicationReceivePackets(state->pipePtr, state->isA);
+    Vector* packets = communicationReceivePackets(state->pipePtr);
     for(int i = 0; i<vectorSize(packets); i++){
         Packet *packet = vectorGet(packets, i);
         if(packet->type == SavedGameStatePacketType){
@@ -71,14 +71,6 @@ static gboolean handlePackets(gpointer data){
 }
 
 
-// /// zapisuje stan gry
-// void savedBtnClickedHandler(GtkWidget*widget, gpointer data){
-//     GameWindow *state = (GameWindow*)data;
-//     Serializer *serializer = serializerCreate();
-//     serializeGameLogic(serializer, state->game->gameLogic, state->isA);   
-//     serializerToFile("save.txt", serializer);
-//     serializerDestroy(serializer);
-// }
 
 
 

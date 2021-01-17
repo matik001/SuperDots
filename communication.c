@@ -50,11 +50,11 @@ void communicationSendSurrenderPacket(PipesPtr pipePtr){
     sendStringToPipe(pipePtr, s);
 }
 
-void communicationSendGameStatePacket(PipesPtr pipePtr, GameLogic *gameState, bool areWePlayerA){
+void communicationSendGameStatePacket(PipesPtr pipePtr, GameLogic *gameState){
     Serializer *serializer = serializerCreate();
 
     serializeInt(serializer, SavedGameStatePacketType);
-    serializeGameLogic(serializer, gameState, areWePlayerA);
+    serializeGameLogic(serializer, gameState);
     
     sendStringToPipe(pipePtr, serializer->s);
 
@@ -64,10 +64,10 @@ void communicationSendGameStatePacket(PipesPtr pipePtr, GameLogic *gameState, bo
 static Vector *loadBasePathPacketData(Serializer *serializer);
 static PointInt *loadMovePacketData(Serializer *serializer);
 static Packet* packetCreate(PacketType type, void *data);
-static GameLogic *loadSavedGameState(Serializer *serializer, bool areWePlayerA);
+static GameLogic *loadSavedGameState(Serializer *serializer);
 
 
-Vector *communicationReceivePackets(PipesPtr pipePtr, bool areWePlayerA){
+Vector *communicationReceivePackets(PipesPtr pipePtr){
     Serializer *serializer = serializerCreate();
 
     Vector *res = vectorCreate();
@@ -88,7 +88,7 @@ Vector *communicationReceivePackets(PipesPtr pipePtr, bool areWePlayerA){
         if(packetType == BasePathPacketType)
             data = loadBasePathPacketData(serializer);
         if(packetType == SavedGameStatePacketType)
-            data = loadSavedGameState(serializer, areWePlayerA);
+            data = loadSavedGameState(serializer);
 
         vectorPush(res, packetCreate(packetType, data));
     }
@@ -128,6 +128,6 @@ static Vector *loadBasePathPacketData(Serializer *serializer){
     return deserializeVectorPointInt(serializer); 
 }
 
-static GameLogic *loadSavedGameState(Serializer *serializer, bool areWePlayerA){
-    return deserializeGameLogic(serializer, areWePlayerA);
+static GameLogic *loadSavedGameState(Serializer *serializer){
+    return deserializeGameLogic(serializer);
 }

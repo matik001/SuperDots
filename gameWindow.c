@@ -9,6 +9,7 @@
 static void init(GameWindow *obj, bool isA, PipesPtr pipePtr, GameLogic *gameLogic);
 static void updateKeepTurnBtn(GameWindow *gameWindow);
 
+
 GameWindow* gameWindowCreate(bool isA, PipesPtr pipePtr, GameLogic *gameLogic){
     GameWindow *obj = (GameWindow*)malloc(sizeof(GameWindow));
     init(obj, isA, pipePtr, gameLogic);
@@ -46,7 +47,7 @@ static void endOfGameHandler(int mine, int his, void*data){
     strcat(msg, mine==his?"Remis":(mine<his ? "Porażka" : "Wygrana") );
     showMessage(msg, state->window);
 
-    gameReset(state->game, state->isA);
+    gameReset(state->game);
     state->areWeKeepingTurn = false;
     updateKeepTurnBtn(state);
 }
@@ -89,7 +90,7 @@ static void keepTurnToggledHandler (GtkButton *btn, gpointer data){
 /// odbiera pakiety i je obsluguje
 static gboolean handlePackets(gpointer data){
     GameWindow *state = (GameWindow*)data;
-    Vector* packets = communicationReceivePackets(state->pipePtr, state->isA);
+    Vector* packets = communicationReceivePackets(state->pipePtr);
     for(int i = 0; i<vectorSize(packets); i++){
         Packet *packet = vectorGet(packets, i);
         if(packet->type == MovePacketType){
@@ -155,7 +156,7 @@ static void savedBtnClickedHandler(GtkWidget*widget, gpointer data){
         return;
 
     Serializer *serializer = serializerCreate();
-    serializeGameLogic(serializer, state->game->gameLogic, state->isA);   
+    serializeGameLogic(serializer, state->game->gameLogic);   
     serializerToFile(filename, serializer);
     serializerDestroy(serializer);
 
@@ -168,8 +169,8 @@ static void savedBtnClickedHandler(GtkWidget*widget, gpointer data){
 static void init(GameWindow *obj, bool isA, PipesPtr pipePtr, GameLogic *gameLogic){
     obj->isA = isA;
     obj->pipePtr = pipePtr;
-    obj->areWeKeepingTurn = gameLogic==NULL ? false
-        : (gameLogicIsMyTurn(gameLogic) && gameLogicIsMoveMadeInThisTurn(gameLogic));
+    obj->areWeKeepingTurn = gameLogicIsMoveMadeInThisTurn(gameLogic);
+        // : (gameLogicIsMyTurn(gameLogic) && gameLogicIsMoveMadeInThisTurn(gameLogic));
 
     obj->window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
     gtk_window_set_title(GTK_WINDOW(obj->window), "Gra w kropki by Mateusz Kisiel");
@@ -223,11 +224,7 @@ static void init(GameWindow *obj, bool isA, PipesPtr pipePtr, GameLogic *gameLog
 
     
     gtk_widget_set_margin_start(obj->keepTurnBtn, 20);
-    
-    if(gameLogic == NULL)
-        obj->game = gameCreate(800, 800, 20, obj->isA);
-    else
-        obj->game = gameCreateFromGameLogic(800, 800, gameLogic, obj->isA);
+    obj->game = gameCreateFromGameLogic(800, 800, gameLogic, obj->isA);
     gameOnBaseCreated(obj->game, baseCreatedHandler, obj);
     gameOnMoveMade(obj->game, moveMadeHandler, obj);
     gameOnScoreChanged(obj->game, scoreChangedHandler, obj);

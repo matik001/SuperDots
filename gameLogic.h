@@ -9,7 +9,7 @@
 typedef struct Dot Dot; 
 struct Dot{
     /// Do kogo nalezy kropa
-    bool isMine;
+    bool belongsToA;
 
     /// Czy kropka zostala juz postawiona, 
     /// W przypadku podswietlenia myszka jest to dalej false
@@ -47,8 +47,8 @@ struct GameLogic{
     /// lista kropek juz postawionych (jest to optymalizacja, ale takze wygoda)
     Vector *existingDots;
 
-    /// kto ma ruch, w rozumieniu kogo jest teraz tura
-    bool isMineMove;
+    /// kto ma ruch, w rozumieniu czyja jest teraz tura
+    bool isPlayerATurn;
 
     /// czy zrobil w tej turze ruch
     bool didMakeMove;
@@ -63,18 +63,19 @@ struct GameLogic{
     /// Odpowiednik gpointer z gtk
     void *onScoreChangedData;
     /// Event gdy zmienily sie punkty
-    void (*onScoreChanged)(int mine, int his, void* data);
+    void (*onScoreChanged)(int playerA, int playerB, void* data);
 
     /// ilosc wolnych miejsc gdzie mozna postawic kropke
     int freeSpaces;
 };
 
 
+/// komentarze do funkcji w pliku .c
 
 Base *baseCreate();
 void baseDestroy(Base *base);
 void baseDestroyVoidPtr(void *base);
-GameLogic *gameLogicCreate(int linesCnt, bool isMineMove);
+GameLogic *gameLogicCreate(int linesCnt, bool isPlayerATurn);
 void gameLogicDestroy(GameLogic *game);
 
 bool gameLogicIsAnyOpponentsDotInsideBase(GameLogic *game, Vector *path);
@@ -83,8 +84,8 @@ void gameLogicAddBase(GameLogic *game, Vector *path);
 bool gameLogicIsMoveLegal(GameLogic *game, PointInt p);
 void gameLogicMakeMove(GameLogic *game, PointInt p);
 void gameLogicEndTurn(GameLogic *game);
-bool gameLogicIsMyTurn(GameLogic *game);
+bool gameLogicIsPlayerATurn(GameLogic *game);
 bool gameLogicIsMoveMadeInThisTurn(GameLogic *game);
-void gameLogicOnScoreChanged(GameLogic *game, void (*handler)(int mine, int his, void* data), void *data);
+void gameLogicOnScoreChanged(GameLogic *game, void (*handler)(int playerA, int playerB, void* data), void *data);
 
 #endif

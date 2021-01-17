@@ -136,12 +136,12 @@ Vector *deserializeVectorPointInt(Serializer *serializer){
 }
 
 
-void serializeGameLogic(Serializer *serializer, GameLogic *state, bool areWePlayerA){
+void serializeGameLogic(Serializer *serializer, GameLogic *state){
     serializeInt(serializer, state->linesCnt);
-    serializeBool(serializer, state->isMineMove^(!areWePlayerA));
+    serializeBool(serializer, state->isPlayerATurn);
     serializeBool(serializer, state->didMakeMove);
-    serializeInt(serializer, areWePlayerA ? state->pointsA : state->pointsB);
-    serializeInt(serializer, areWePlayerA ? state->pointsB : state->pointsA);
+    serializeInt(serializer, state->pointsA);
+    serializeInt(serializer, state->pointsB);
     serializeInt(serializer, state->freeSpaces);
     
     /// zapisywanie kropek
@@ -149,7 +149,7 @@ void serializeGameLogic(Serializer *serializer, GameLogic *state, bool areWePlay
         for(int j = 0; j<state->linesCnt; j++){
             serializeBool(serializer, state->dots[i][j].exists);
             serializeBool(serializer, state->dots[i][j].isInsideBase);
-            serializeBool(serializer, state->dots[i][j].isMine^(!areWePlayerA));
+            serializeBool(serializer, state->dots[i][j].belongsToA);
             serializeInt(serializer, state->dots[i][j].points);
         }
     }
@@ -174,19 +174,16 @@ void serializeGameLogic(Serializer *serializer, GameLogic *state, bool areWePlay
     }
 }
 
-GameLogic *deserializeGameLogic(Serializer *serializer, bool areWePlayerA){
+GameLogic *deserializeGameLogic(Serializer *serializer){
     int linesCnt;
-    bool isMineMove;
+    bool isPlayerAOnMove;
     linesCnt = deserializeInt(serializer);
-    isMineMove = deserializeBool(serializer);
-    if(!areWePlayerA)
-        isMineMove = !isMineMove;
-    GameLogic *state  = gameLogicCreate(linesCnt, isMineMove);
+    isPlayerAOnMove = deserializeBool(serializer);
+
+    GameLogic *state  = gameLogicCreate(linesCnt, isPlayerAOnMove);
     state->didMakeMove = deserializeBool(serializer);
     state->pointsA = deserializeInt(serializer);
     state->pointsB = deserializeInt(serializer);
-    if(!areWePlayerA)
-        swap(&state->pointsA, &state->pointsB);
     state->freeSpaces = deserializeInt(serializer);
     
     /// odczytywanie kropek
@@ -195,7 +192,7 @@ GameLogic *deserializeGameLogic(Serializer *serializer, bool areWePlayerA){
             Dot *dot = &state->dots[i][j];
             dot->exists = deserializeBool(serializer);
             dot->isInsideBase = deserializeBool(serializer);
-            dot->isMine = deserializeBool(serializer)^(!areWePlayerA);
+            dot->belongsToA = deserializeBool(serializer);
             dot->points = deserializeInt(serializer);
             dot->p.x = i;
             dot->p.y = j;

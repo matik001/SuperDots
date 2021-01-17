@@ -32,9 +32,9 @@ void baseDestroyVoidPtr(void *base){
 }
 
 /// tworzy nowa instancje gameLogic
-GameLogic *gameLogicCreate(int linesCnt, bool isMineMove){
+GameLogic *gameLogicCreate(int linesCnt, bool isPlayerATurn){
     GameLogic *game = (GameLogic*)malloc(sizeof(GameLogic));
-    game->isMineMove = isMineMove;
+    game->isPlayerATurn = isPlayerATurn;
     game->didMakeMove = false;
     game->linesCnt = linesCnt;
     game->pointsA = 0;
@@ -90,13 +90,13 @@ bool gameLogicIsAnyOpponentsDotInsideBase(GameLogic *game, Vector *path){
     if(vectorSize(path) == 0)
         return false;
 
-    bool baseColor = ((Dot*)vectorGet(path, 0))->isMine;
+    bool baseOwner = ((Dot*)vectorGet(path, 0))->belongsToA;
     for(int i = 0; i<game->linesCnt; i++){
         for(int j = 0; j<game->linesCnt; j++){
             if(!isOutside[i][j]){
                 Dot*dot = &game->dots[i][j];
                 if(dot->exists
-                    && dot->isMine != baseColor
+                    && dot->belongsToA != baseOwner
                     && !dot->isInsideBase)
                         return true;
             }
@@ -132,12 +132,12 @@ void gameLogicAddBase(GameLogic *game, Vector *path){
 
     int deltaPoints1 = 0, deltaPoints2 = 0;
 
-    bool baseColor = ((Dot*)vectorGet(path, 0))->isMine;
+    bool baseOwner = ((Dot*)vectorGet(path, 0))->belongsToA;
     for(int i = 0; i<game->linesCnt; i++){
         for(int j = 0; j<game->linesCnt; j++){
             if(!isOutside[i][j]){
                 if(game->dots[i][j].exists){
-                    if(game->dots[i][j].isMine != baseColor){
+                    if(game->dots[i][j].belongsToA != baseOwner){
                         deltaPoints1 -= game->dots[i][j].points;
                         game->dots[i][j].points = 1;
                         deltaPoints1 += game->dots[i][j].points;
@@ -157,7 +157,7 @@ void gameLogicAddBase(GameLogic *game, Vector *path){
     }
 
     vectorPush(game->bases, base);
-    if(!baseColor)
+    if(!baseOwner)
         swap(&deltaPoints1, &deltaPoints2);
     game->pointsA += deltaPoints1;
     game->pointsB += deltaPoints2;
@@ -178,7 +178,7 @@ void gameLogicMakeMove(GameLogic *game, PointInt p){
     Dot *dot = &game->dots[p.x][p.y];
 
     dot->exists = true;
-    dot->isMine = game->isMineMove;
+    dot->belongsToA = game->isPlayerATurn;
     game->didMakeMove = true;
     game->freeSpaces--;
     vectorPush(game->existingDots, dot);
@@ -186,20 +186,20 @@ void gameLogicMakeMove(GameLogic *game, PointInt p){
 
 /// fukcja konczaca ture
 void gameLogicEndTurn(GameLogic *game){
-    game->isMineMove = !game->isMineMove;
+    game->isPlayerATurn = !game->isPlayerATurn;
     game->didMakeMove = false;
 }
 
 /// dodaje event zmiany wyniku
-void gameLogicOnScoreChanged(GameLogic *game, void (*handler)(int mine, 
-                                int his, void* data), void *data){
+void gameLogicOnScoreChanged(GameLogic *game, void (*handler)(int playerA, 
+                                int playerB, void* data), void *data){
     game->onScoreChangedData = data;
     game->onScoreChanged = handler;
 }
 
 /// zwraca czy obecnie jest nasza tura
-bool gameLogicIsMyTurn(GameLogic *game){
-    return game->isMineMove;
+bool gameLogicIsPlayerATurn(GameLogic *game){
+    return game->isPlayerATurn;
 }
 
 /// zwraca czy obecnie jest nasza tura i już zrobiliśmy ruch
@@ -211,7 +211,7 @@ bool gameLogicIsMoveMadeInThisTurn(GameLogic *game){
 static void dotInit(Dot *dot, PointInt p){
     dot->p.x = p.x;
     dot->p.y = p.y;
-    dot->isMine = true;
+    dot->belongsToA = true;
     dot->exists = false;
     dot->isInsideBase = false;
     dot->points = 0;

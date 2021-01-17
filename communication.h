@@ -44,12 +44,12 @@ void communicationSendEndOfTurnPacket(PipesPtr pipePtr);
 void communicationSendSurrenderPacket(PipesPtr pipePtr);
 
 /// wysyla dane gry ktora przeciwnik ma zaladowac
-void communicationSendGameStatePacket(PipesPtr pipePtr, GameLogic *gameState, bool areWePlayerA);
+void communicationSendGameStatePacket(PipesPtr pipePtr, GameLogic *gameState);
 
 
 /// odbiera liste pakietow
 /// !!! zrobic destroy na kazdym pakiecie
-Vector *communicationReceivePackets(PipesPtr pipePtr, bool areWePlayerA);
+Vector *communicationReceivePackets(PipesPtr pipePtr);
 
 
 /// zwalnia miejsce po pakiecie

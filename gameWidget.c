@@ -11,49 +11,14 @@ static gboolean gtkDrawCallback(GtkWidget *widget, cairo_t *cr, gpointer data);
 static gboolean mouseMovedEventHandler (GtkWidget *widget, GdkEventMotion *event, gpointer data);
 static gboolean mousePressEventHandler(GtkWidget *widget, GdkEventButton *event, gpointer data);
 static gboolean mouseLeftEventHandler(GtkWidget *widget, GdkEventCrossing *event, gpointer data);
-static void scoreChangedHandler(int mine, int his, void* data);
+static void scoreChangedHandler(int playerA, int playerB, void* data);
 
 /// tworzy nowy obiekt widgetu gry
-Game *gameCreate(int width, int height, int linesCnt, bool isOurMove){
-    Game *game = (Game*)malloc(sizeof(Game));
-
-    game->gameLogic = gameLogicCreate(linesCnt, isOurMove);
-    game->invertColors = !isOurMove;
-    game->hoverDot = NULL;
-    game->width = width;
-    game->height = height;
-    game->activeBaseDots = vectorCreate();
-
-    game->onBaseCreated = NULL;
-    game->onBaseCreatedData = NULL;
-    game->onMoveMade = NULL;
-    game->onMoveMadeData = NULL;
-    game->onScoreChangedData = NULL;
-    game->onScoreChanged = NULL;
-    game->onEndOfGame = NULL;
-    game->onEndOfGameData = NULL;
-
-    gameLogicOnScoreChanged(game->gameLogic, scoreChangedHandler, game);
-    
-    game->drawingArea = gtk_drawing_area_new();
-
-    gtk_widget_set_size_request(game->drawingArea, width, height);
-    g_signal_connect(G_OBJECT(game->drawingArea), "draw", G_CALLBACK(gtkDrawCallback), game);
-
-    gtk_widget_set_events(GTK_WIDGET(game->drawingArea), GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK);
-    g_signal_connect(G_OBJECT(game->drawingArea), "motion_notify_event", (GCallback)mouseMovedEventHandler, game);
-    g_signal_connect(G_OBJECT(game->drawingArea), "button_press_event", (GCallback) mousePressEventHandler, game);
-    g_signal_connect(G_OBJECT(game->drawingArea), "leave-notify-event", (GCallback) mouseLeftEventHandler, game);
-
-    return game;
-}
-
-/// tworzy nowy obiekt widgetu gry
-Game *gameCreateFromGameLogic(int width, int height, GameLogic *gameLogic, bool areWeRed){
+Game *gameCreateFromGameLogic(int width, int height, GameLogic *gameLogic, bool areWePlayerA){
     Game *game = (Game*)malloc(sizeof(Game));
 
     game->gameLogic = gameLogic;
-    game->invertColors = !areWeRed;
+    game->areWePlayerA = areWePlayerA;
     game->hoverDot = NULL;
     game->width = width;
     game->height = height;
@@ -85,14 +50,13 @@ Game *gameCreateFromGameLogic(int width, int height, GameLogic *gameLogic, bool 
 }
 
 /// resetowanie gry
-void gameReset(Game *game, bool isOurMove){
+void gameReset(Game *game){
     int linesCnt = game->gameLogic->linesCnt;
 
     gameLogicDestroy(game->gameLogic);
-    game->invertColors = !isOurMove;
     vectorClear(game->activeBaseDots);
     game->hoverDot = NULL;
-    game->gameLogic = gameLogicCreate(linesCnt, isOurMove);
+    game->gameLogic = gameLogicCreate(linesCnt, true);
     gameLogicOnScoreChanged(game->gameLogic, scoreChangedHandler, game);
     scoreChangedHandler(0, 0, game);
 
@@ -133,7 +97,11 @@ void gameChangeTurn(Game *game){
 
     bool endOfGame = game->gameLogic->freeSpaces == 0;
     if(endOfGame && game->onEndOfGame != NULL){
-        game->onEndOfGame(game->gameLogic->pointsA, game->gameLogic->pointsB, game->onEndOfGameData);
+        int pointsA = game->gameLogic->pointsA;
+        int pointsB = game->gameLogic->pointsB;
+        if(!game->areWePlayerA)
+            swap(&pointsA, &pointsB);
+        game->onEndOfGame(pointsA, pointsB, game->onEndOfGameData);
     }
     /// konczymy dopiero po zakonczeniu tury bo moze chciec jeszcze zrobic jakies bazy
 }
@@ -164,13 +132,15 @@ void gameOnEndOfGame(Game *game, void (*handler)(int mine,
 
 /// zwraca czy jest nasza tura
 bool gameIsMyTurn(Game *game){
-    return gameLogicIsMyTurn(game->gameLogic);
+    return gameLogicIsPlayerATurn(game->gameLogic) == game->areWePlayerA;
 }
 
-static void scoreChangedHandler(int mine, int his, void* data){
+static void scoreChangedHandler(int playerA, int playerB, void* data){
     Game *game = (Game*)data;
     if(game->onScoreChanged != NULL){
-        game->onScoreChanged(mine, his, game->onScoreChangedData);
+        if(!game->areWePlayerA)
+            swap(&playerA, &playerB);
+        game->onScoreChanged(playerA, playerB, game->onScoreChangedData);
     }
 }
 
@@ -215,7 +185,7 @@ static void reRenderSingleDot(Game *game, PointInt p){
     gtk_widget_queue_draw_area(game->drawingArea, pos.x-DOT_RADIUS-RESERVE,pos.y-DOT_RADIUS-RESERVE, 2*(DOT_RADIUS+RESERVE), 2*(DOT_RADIUS+RESERVE));
 }
 
-/// zamienia punkt na ekranie na indeks najblizszej kropki bedacej w odleglosci d 
+/// zamienia punkt na ekranie na indeks najblizszej kropki bedacej w odleglosci nie wiekszej niz d 
 static PointInt *toArrPoint(Game *game, PointDouble pixelPoint, double d){
     int beforeX = (int)((pixelPoint.x - MARGIN)/((game->width-2*MARGIN)/(double)(game->gameLogic->linesCnt-1)));
     int beforeY = (int)((pixelPoint.y - MARGIN)/((game->height-2*MARGIN)/(double)(game->gameLogic->linesCnt-1)));
@@ -256,12 +226,18 @@ static bool isDotInActivePath(Game *game, Dot *dot){
 }
 
 
+/// zwraca true jezeli kropka jest nasza
+static bool isDotMine(Game *game, Dot *dot){
+    return dot->belongsToA == game->areWePlayerA;
+}
+
+
 
 /// sprawdza czy kropka moze byc dodana jako kolejna w aktualnie tworzonej sciezce bazy
 static bool canBeAddedtoActiveBasePath(Game *game, Dot *dot){
-    if(game->gameLogic->isMineMove  
+    if(gameIsMyTurn(game)  
                     && dot->exists 
-                    && dot->isMine 
+                    && isDotMine(game, dot) 
                     && !dot->isInsideBase){
         if(vectorSize(game->activeBaseDots)==0)
             return true;
@@ -278,7 +254,7 @@ static bool canBeAddedtoActiveBasePath(Game *game, Dot *dot){
 
 /// sprawdza czy mozna stworzyc baze z aktualnej aktywnej
 static bool canCreateBase(Game *game){
-    if(game->gameLogic->isMineMove
+    if(gameIsMyTurn(game)
                 && vectorSize(game->activeBaseDots) > 0){
         Dot *firstDot = (Dot*)vectorGet(game->activeBaseDots, 0);
         Dot *lastDot = (Dot*)vectorGet(game->activeBaseDots, vectorSize(game->activeBaseDots)-1);
@@ -306,7 +282,7 @@ static bool isAboutToMakeBase(Game *game){
 /// w innym przypadku zwraca 0
 /// !!! nie sprawdza czy da sie zrobic baze, zaklada ze sie nie da
 static int howManyAreWeAboutToRemove(Game *game){
-    if(game->gameLogic->isMineMove){
+    if(gameIsMyTurn(game)){
         for(int i = 0; i<vectorSize(game->activeBaseDots); i++){
             if(vectorGet(game->activeBaseDots, i) == game->hoverDot)
                 return vectorSize(game->activeBaseDots)-i;
@@ -363,10 +339,10 @@ static void drawDots(Game *game, cairo_t *cr, int howManyNotToShow, bool drawIns
             && canBeAddedtoActiveBasePath(game, dot))
             cairo_set_source_rgba (cr, COLOR_HOVER_NEXT_IN_PATH);
         else{
-            if( (dot->isMine^game->invertColors) )
-                cairo_set_source_rgba (cr, COLOR_MY_DOTS);
+            if(dot->belongsToA)
+                cairo_set_source_rgba (cr, COLOR_A_DOTS);
             else
-                cairo_set_source_rgba (cr, COLOR_OPPONENTS_DOTS);
+                cairo_set_source_rgba (cr, COLOR_B_DOTS);
         }
         PointDouble point = toPixelPoint(game, dot->p);
         cairo_arc(cr, point.x, point.y, DOT_RADIUS, 0, 2*G_PI);
@@ -389,12 +365,12 @@ static void drawDots(Game *game, cairo_t *cr, int howManyNotToShow, bool drawIns
         }
 
         if(game->hoverDot != NULL 
-                    && game->gameLogic->isMineMove
+                    && gameIsMyTurn(game)
                     && gameLogicIsMoveLegal(game->gameLogic, game->hoverDot->p)){
-            if(game->invertColors)
-                cairo_set_source_rgba (cr, COLOR_HOVERED_NEW_INVERTED);
+            if(game->areWePlayerA)
+                cairo_set_source_rgba (cr, COLOR_HOVERED_NEW_A);
             else
-                cairo_set_source_rgba (cr, COLOR_HOVERED_NEW);
+                cairo_set_source_rgba (cr, COLOR_HOVERED_NEW_B);
 
             PointDouble point = toPixelPoint(game, game->hoverDot->p);
             cairo_arc(cr, point.x, point.y, DOT_RADIUS, 0, 2*G_PI);
@@ -411,10 +387,10 @@ static void drawBases(Game *game, cairo_t *cr){
         Base *base = (Base*)vectorGet(game->gameLogic->bases, i);
         Dot *previousDot = (Dot*)vectorGet(base->path, vectorSize(base->path)-1);
 
-        if(previousDot->isMine ^ game->invertColors)
-            cairo_set_source_rgba (cr, COLOR_MY_BASE_PATH);
+        if(previousDot->belongsToA)
+            cairo_set_source_rgba (cr, COLOR_A_BASE_PATH);
         else
-            cairo_set_source_rgba (cr, COLOR_OPPONTENTS_BASE_PATH);
+            cairo_set_source_rgba (cr, COLOR_B_BASE_PATH);
 
         for(int j = 0; j < vectorSize(base->path); j++){
             Dot *dot = (Dot*)vectorGet(base->path, j);
@@ -430,10 +406,10 @@ static void drawBases(Game *game, cairo_t *cr){
         cairo_close_path(cr);
         cairo_stroke_preserve(cr);
 
-        if(previousDot->isMine ^ game->invertColors)
-            cairo_set_source_rgba (cr, COLOR_MY_BASE_BG);
+        if(previousDot->belongsToA)
+            cairo_set_source_rgba (cr, COLOR_A_BASE_BG);
         else
-            cairo_set_source_rgba (cr, COLOR_OPPONTENTS_BASE_BG);
+            cairo_set_source_rgba (cr, COLOR_B_BASE_BG);
 
         cairo_fill(cr);
     }
@@ -492,7 +468,7 @@ static void drawActiveBase(Game *game, cairo_t *cr, bool shouldShowNewBase, int 
                         to = toPixelPoint(game, game->hoverDot->p);
             cairo_move_to (cr, from.x, from.y);
             cairo_line_to (cr, to.x, to.y);
-           cairo_stroke(cr);
+            cairo_stroke(cr);
 
         }
     }
@@ -549,7 +525,7 @@ static gboolean mousePressEventHandler(GtkWidget *widget, GdkEventButton *event,
     
     mouseMoved(game, pointInt(event->x, event->y));
 
-    if(!game->gameLogic->isMineMove || game->hoverDot == NULL)
+    if(!gameIsMyTurn(game) || game->hoverDot == NULL)
         return FALSE;
 
     if (event->button == 1){

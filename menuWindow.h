@@ -14,9 +14,9 @@ struct MenuWindow{
     GtkWidget *loadGameBtn;
     int handlePacketsTimerId;
     GameLogic *gameState;
+    bool isA;
 
     PipesPtr pipePtr;
-    bool isA;
 };
 
 

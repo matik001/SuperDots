@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    communicationSendGameStatePacket(pipePtr, gameState, isA);
+    communicationSendGameStatePacket(pipePtr, gameState);
 
     GameWindow *gameWindow = gameWindowCreate(isA, pipePtr, gameState);
     gameWindowShow(gameWindow);
