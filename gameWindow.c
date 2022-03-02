@@ -76,7 +76,11 @@ static void changeTurn(GameWindow *state){
 /// jezeli przelaczono przycisk trzymania ruchu
 static void keepTurnToggledHandler (GtkButton *btn, gpointer data){
     GameWindow *state = (GameWindow*)data;
-    
+
+    if(!state->wasButtonClickedManually){
+        state->wasButtonClickedManually = true;
+        return;
+    }
     state->areWeKeepingTurn = !state->areWeKeepingTurn;
 
     if(!state->areWeKeepingTurn){
@@ -170,7 +174,7 @@ static void init(GameWindow *obj, bool isA, PipesPtr pipePtr, GameLogic *gameLog
     obj->isA = isA;
     obj->pipePtr = pipePtr;
     obj->areWeKeepingTurn = gameLogicIsMoveMadeInThisTurn(gameLogic);
-        // : (gameLogicIsMyTurn(gameLogic) && gameLogicIsMoveMadeInThisTurn(gameLogic));
+    obj->wasButtonClickedManually = true;
 
     obj->window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
     gtk_window_set_title(GTK_WINDOW(obj->window), "Gra w kropki by Mateusz Kisiel");
@@ -251,8 +255,10 @@ static void updateKeepTurnBtn(GameWindow *gameWindow){
         gtk_widget_show(gameWindow->keepTurnBtn);
 
     bool toggled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(gameWindow->keepTurnBtn));
-    if(toggled != gameWindow->areWeKeepingTurn)
+    if(toggled != gameWindow->areWeKeepingTurn){
+        gameWindow->wasButtonClickedManually = false;
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(gameWindow->keepTurnBtn), gameWindow->areWeKeepingTurn);
+    }
 
     gtk_button_set_label(GTK_BUTTON(gameWindow->keepTurnBtn), gameWindow->areWeKeepingTurn? "Zakończ turę" : "Nie oddawaj tury");
 }

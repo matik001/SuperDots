@@ -18,6 +18,7 @@ struct GameWindow{
     int handlePacketsTimerId;
 
     bool areWeKeepingTurn;
+    bool wasButtonClickedManually;
     PipesPtr pipePtr;
     bool isA;
 };
