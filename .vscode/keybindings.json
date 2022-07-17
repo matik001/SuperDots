@@ -1,7 +1,0 @@
-[
-    {
-        "key": "ctrl+g",
-        "command": "workbench.action.tasks.runTask",
-        "args": "runB"
-    }
-]
